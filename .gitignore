@@ -1,0 +1,7 @@
+.vscode
+.idea
+__pycache__
+build/
+dist/
+factom_keys.egg-info/
+venv
