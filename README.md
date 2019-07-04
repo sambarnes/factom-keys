@@ -24,7 +24,7 @@ fd2b3f4d7702ebe1a7e611a9095eaa2056e1ac0c47b8c3aad0fce35ce29346a1 7dffa7b87844b1d
 
 Signing a message and then verifying the signature:
 ```python
-message = b'hello'
+>>> message = b'hello'
 >>> signature = private_key.sign(message)
 >>> signature = ec_private.sign(message)
 print(ec_public.verify(signature, message))
@@ -42,6 +42,8 @@ True
 >>> ECAddress.is_valid("BADKSYyRcNWf7RS963VFYgMExoHRYLHVeCfQ9PGPmNzwrcmgm2r")
 False
 ```
+
+Look through the tests to see some other example usage.
 
 ### Factoid Keys
 
