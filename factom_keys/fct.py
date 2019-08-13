@@ -161,7 +161,7 @@ class FactoidAddress(object):
         :param message: the message covered by the provided signature
         :return: `True` if this public key successfully verifies the signature for the given message, `False` otherwise
         """
-        if not self._has_public_key()():
+        if not self._has_public_key():
             return False
         try:
             self._verifier.verify(signature, message)
