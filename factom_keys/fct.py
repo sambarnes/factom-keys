@@ -24,27 +24,24 @@ def _to_base58_string(prefixed_key: bytes):
     :return: a Factoid private key string or Factoid address
     """
     prefix = prefixed_key[:PREFIX_LENGTH]
-    assert prefix == FactoidAddress.PREFIX or prefix == FactoidPrivateKey.PREFIX, 'Invalid key prefix.'
+    assert prefix == FactoidAddress.PREFIX or prefix == FactoidPrivateKey.PREFIX, "Invalid key prefix."
     temp_hash = sha256(prefixed_key[:BODY_LENGTH]).digest()
     checksum = sha256(temp_hash).digest()[:CHECKSUM_LENGTH]
     return base58.encode(prefixed_key + checksum)
 
 
-class BadKeyStringError(Exception):
-    pass
-
-
-class RCDMismatchError(Exception):
+class BadKeyStringError(ValueError):
     pass
 
 
 class FactoidPrivateKey(object):
 
-    PREFIX = b'dx'  # 0x6478
+    PREFIX = b"dx"  # 0x6478
 
     def __init__(self, seed_bytes=None, key_string=None):
-        assert (seed_bytes and not key_string) or (not seed_bytes and key_string), \
-            "Only provide one of seed_bytes or key_string, not both"
+        assert (seed_bytes and not key_string) or (
+            not seed_bytes and key_string
+        ), "Only provide one of seed_bytes or key_string, not both"
 
         if key_string:
             if not FactoidPrivateKey.is_valid(key_string):
@@ -111,30 +108,30 @@ class FactoidPrivateKey(object):
 
 class FactoidAddress(object):
 
-    PREFIX = b'_\xb1'  # 0x5fb1
+    PREFIX = b"_\xb1"  # 0x5fb1
 
-    def __init__(self, key_bytes=None, address_string=None):
-        assert key_bytes or address_string, "Must provide key_bytes, address_string, or both"
+    def __init__(self, key_bytes=None, rcd_hash=None, address_string=None):
+        """Tries to initialize a FactoidAddress using the key_bytes, then the rcd_hash, then the address string."""
+        assert key_bytes or address_string or rcd_hash, "Must provide key_bytes, address_string, or rcd_hash"
 
         self._verifier = None
         self.rcd_hash = None
 
-        if key_bytes:
+        if key_bytes is not None:
             assert isinstance(key_bytes, bytes)
             assert len(key_bytes) == 32
             self._verifier = ed25519.VerifyingKey(key_bytes)
-            temp_hash = sha256(b'\x01' + key_bytes).digest()
+            temp_hash = sha256(b"\x01" + key_bytes).digest()
             self.rcd_hash = sha256(temp_hash).digest()
-
-        if address_string:
+        if rcd_hash is not None:
+            if type(rcd_hash) not in {bytes, bytearray} or len(rcd_hash) != 32:
+                raise ValueError("rcd_hash must be bytes object of length 32")
+            self.rcd_hash = rcd_hash
+        elif address_string is not None:
             if not FactoidAddress.is_valid(address_string):
                 raise BadKeyStringError()
             decoded = base58.decode(address_string)
-            rcd_hash = decoded[PREFIX_LENGTH:BODY_LENGTH]
-            if self.rcd_hash is None:
-                self.rcd_hash = rcd_hash
-            elif self.rcd_hash != rcd_hash:
-                raise RCDMismatchError
+            self.rcd_hash = decoded[PREFIX_LENGTH:BODY_LENGTH]
 
     def _has_public_key(self):
         return self._verifier is not None
