@@ -117,9 +117,7 @@ class ECAddress(object):
             if not ECAddress.is_valid(key_string):
                 raise BadKeyStringError()
             decoded = base58.decode(key_string)
-            print(f"decoded: {decoded}")
             key_bytes = decoded[PREFIX_LENGTH:BODY_LENGTH]
-            print(f"key bytes: {key_bytes}")
 
         assert isinstance(key_bytes, bytes)
         assert len(key_bytes) == 32
