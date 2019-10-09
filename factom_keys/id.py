@@ -32,7 +32,7 @@ def _to_base58_string(prefixed_key: bytes):
     :return: a sk1 private key string or id public key string
     """
     prefix = prefixed_key[:PREFIX_LENGTH]
-    assert prefix in IDPublicKey.PREFIXES or prefix in IDPrivateKey.PREFIXES, 'Invalid key prefix.'
+    assert prefix in IDPublicKey.PREFIXES or prefix in IDPrivateKey.PREFIXES, "Invalid key prefix."
     temp_hash = sha256(prefixed_key[:BODY_LENGTH]).digest()
     checksum = sha256(temp_hash).digest()[:CHECKSUM_LENGTH]
     return base58.encode(prefixed_key + checksum)
@@ -45,11 +45,12 @@ class BadKeyStringError(Exception):
 class IDPrivateKey:
 
     # Prefixes for sk1 - sk4.
-    PREFIXES = [b'\x4d\xb6\xc9', b'\x4d\xb6\xe7',  b'\x4d\xb7\x05', b'\x4d\xb7\x23']
+    PREFIXES = [b"\x4d\xb6\xc9", b"\x4d\xb6\xe7", b"\x4d\xb7\x05", b"\x4d\xb7\x23"]
 
     def __init__(self, seed_bytes=None, key_string=None):
-        assert (seed_bytes and not key_string) or (not seed_bytes and key_string), \
-            "Only provide one of seed_bytes or key_string, not both"
+        assert (seed_bytes and not key_string) or (
+            not seed_bytes and key_string
+        ), "Only provide one of seed_bytes or key_string, not both"
 
         if key_string:
             if not IDPrivateKey.is_valid(key_string):
@@ -122,11 +123,12 @@ class IDPrivateKey:
 class IDPublicKey:
 
     # Prefixes for id1 - id4
-    PREFIXES = [b'\x3f\xbe\xba', b'\x3f\xbe\xd8', b'\x3f\xbe\xf6', b'\x3f\xbf\x14']
+    PREFIXES = [b"\x3f\xbe\xba", b"\x3f\xbe\xd8", b"\x3f\xbe\xf6", b"\x3f\xbf\x14"]
 
     def __init__(self, key_bytes=None, key_string=None):
-        assert (key_bytes and not key_string) or (not key_bytes and key_string), \
-            "Only provide one of key_bytes or key_string, not both"
+        assert (key_bytes and not key_string) or (
+            not key_bytes and key_string
+        ), "Only provide one of key_bytes or key_string, not both"
 
         if key_string:
             if not IDPublicKey.is_valid(key_string):
