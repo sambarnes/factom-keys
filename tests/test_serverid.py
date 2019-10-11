@@ -1,18 +1,27 @@
+import re
 import unittest
 
-from factom_keys.id import IDPrivateKey, IDPublicKey, generate_id_pairs
+from factom_keys.serverid import (
+    ServerIdPrivateKey, ServerIdPublicKey, generate_key_pair, generate_id_key_set, InvalidKeyLevelError,
+    InvalidParamsError
+)
 
 
 class TestIDKeys(unittest.TestCase):
-    def test_generate_key_pairs(self):
-        pairs = generate_id_pairs()
-
-        assert len(pairs) == 4
+    def test_generate_id_key_set(self):
+        pairs = generate_id_key_set()
 
         for pair in pairs:
-            private_key, public_key = pair
-            assert isinstance(private_key, IDPrivateKey)
-            assert isinstance(public_key, IDPublicKey)
+            k, p = pair
+            assert re.match(r"sk[1-4]", k) is not None
+            assert re.match(r"id[1-4]", p) is not None
+            assert len(k) == 53 and len(p) == 53
+
+    def test_generate_key_pairs(self):
+        level = 1
+        private_key, public_key = generate_key_pair(level)
+        assert isinstance(private_key, ServerIdPrivateKey)
+        assert isinstance(public_key, ServerIdPublicKey)
 
     def test_key_string_validity_checkers(self):
         # All zeros private key
@@ -31,50 +40,51 @@ class TestIDKeys(unittest.TestCase):
         ]
 
         for k, p in zip(private_keys, public_keys):
-            assert IDPrivateKey.is_valid(k)
-            assert IDPublicKey.is_valid(p)
+            assert ServerIdPrivateKey.is_valid(k)
+            assert ServerIdPublicKey.is_valid(p)
 
         # Bad prefixes
         private = "sk51pz4AG9XgB1eNVkbppYAWsgyg7sftDXqBASsagKJqvVRKYodCU"
         public = "ie11qFJ7fe26N29hrY3f1gUQC7UYArUg2GEy1rpPp2ExbnJdSj3mN"
-        assert not IDPrivateKey.is_valid(private)
-        assert not IDPublicKey.is_valid(public)
+        assert not ServerIdPrivateKey.is_valid(private)
+        assert not ServerIdPublicKey.is_valid(public)
 
         # Bad bodies
         private = "sk11pz4AG9XgB1eNVkbppYYYYgyg7sftDXqBASsagKJqvVRKYodCU"
         public = "id11qFJ7fe26N29hrY3f1gYYY7UYArUg2GEy1rpPp2ExbnJdSj3mN"
-        assert not IDPrivateKey.is_valid(private)
-        assert not IDPublicKey.is_valid(public)
+        assert not ServerIdPrivateKey.is_valid(private)
+        assert not ServerIdPublicKey.is_valid(public)
 
         # Bad checksums
         private = "sk11pz4AG9XgB1eNVkbppYAWsgyg7sftDXqBASsagKJqvVRKYodCT"
         public = "id11qFJ7fe26N29hrY3f1gUQC7UYArUg2GEy1rpPp2ExbnJdSj3mP"
-        assert not IDPrivateKey.is_valid(private)
-        assert not IDPublicKey.is_valid(public)
+        assert not ServerIdPrivateKey.is_valid(private)
+        assert not ServerIdPublicKey.is_valid(public)
 
         # Bad base58
         private = "sk11pz4AG9XgB1eNVkbpp+++sgyg7sftDXqBASsagKJqvVRKYodCU"
         public = "id11qFJ7fe26N29hrY3f1g0007UYArUg2GEy1rpPp2ExbnJdSj3mN"
-        assert not IDPrivateKey.is_valid(private)
-        assert not IDPublicKey.is_valid(public)
+        assert not ServerIdPrivateKey.is_valid(private)
+        assert not ServerIdPublicKey.is_valid(public)
 
     def test_key_imports_and_exports(self):
         private_bytes = b"\x00" * 32
         private_string = "sk11pz4AG9XgB1eNVkbppYAWsgyg7sftDXqBASsagKJqvVRKYodCU"
         public_string = "id12HQxrj9A4ESYVWqKDx7UC1gJfXpUJDVWt6wHem4fjyNyUKVUx2"
 
-        private_from_bytes = IDPrivateKey(seed_bytes=private_bytes)
-        private_from_string = IDPrivateKey(key_string=private_string)
+        private_from_bytes = ServerIdPrivateKey(seed_bytes=private_bytes)
+        private_from_bytes.key_level = 1
+        private_from_string = ServerIdPrivateKey(key_string=private_string)
         assert private_from_bytes.key_bytes == private_bytes
         assert private_from_string.key_bytes == private_bytes
-        assert private_from_bytes.to_string(1) == private_string
-        assert private_from_string.to_string(1) == private_string
+        assert private_from_bytes.to_string() == private_string
+        assert private_from_string.to_string() == private_string
 
         public_from_private = private_from_string.get_public_key()
-        public_from_string = IDPublicKey(key_string=public_string)
+        public_from_string = ServerIdPublicKey(key_string=public_string)
         assert public_from_private.key_bytes == public_from_string.key_bytes
-        assert public_from_private.to_string(1) == public_string
-        assert public_from_string.to_string(1) == public_string
+        assert public_from_private.to_string() == public_string
+        assert public_from_string.to_string() == public_string
 
     def test_sign_message(self):
         message = b"test message"
@@ -84,7 +94,7 @@ class TestIDKeys(unittest.TestCase):
             b"\xff\x1e\x15l\xf9M\xb8$H\t\xc61\x0cD\x08"
         )
         private_string = "sk11pz4AG9XgB1eNVkbppYAWsgyg7sftDXqBASsagKJqvVRKYodCU"
-        private_key = IDPrivateKey(key_string=private_string)
+        private_key = ServerIdPrivateKey(key_string=private_string)
 
         assert private_key.sign(message) == signature
 
@@ -96,9 +106,29 @@ class TestIDKeys(unittest.TestCase):
             b"\xff\x1e\x15l\xf9M\xb8$H\t\xc61\x0cD\x08"
         )
         public_string = "id12HQxrj9A4ESYVWqKDx7UC1gJfXpUJDVWt6wHem4fjyNyUKVUx2"
-        public_key = IDPublicKey(key_string=public_string)
+        public_key = ServerIdPublicKey(key_string=public_string)
 
         assert public_key.verify(signature, message)
+
+    def test_key_level(self):
+        # Level 3 key
+        private_key = ServerIdPrivateKey(key_string="sk32Tee5C4fCkbjbN4zc4VPkr9vX4xg8n53XQuWZx6xAKm2cAP7gv")
+        assert private_key.key_level == 3
+        public_key = private_key.get_public_key()
+        assert public_key.key_level == 3
+        private_key.key_level = 4
+        assert private_key.key_level == 4 and public_key.key_level == 3
+
+        with self.assertRaises(InvalidKeyLevelError):
+            private_key.key_level = 5
+
+        with self.assertRaises(InvalidKeyLevelError):
+            private_key.key_level = -1
+
+    def test_invalid_params(self):
+        k, _ = generate_key_pair(3)
+        with self.assertRaises(InvalidParamsError):
+            private_key = ServerIdPrivateKey(k, "sk32Tee5C4fCkbjbN4zc4VPkr9vX4xg8n53XQuWZx6xAKm2cAP7gv")  # NOQA
 
 
 if __name__ == "__main__":
