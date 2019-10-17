@@ -86,7 +86,7 @@ class ECPrivateKey(object):
     def is_valid(cls, key_string: str):
         """
         :param key_string: the EC private key string to be checked
-        :return: `True` if `address` is a valid EC private key string in Es format, `False` otherwise
+        :return: `True` if `key_string` is a valid EC private key string in Es format, `False` otherwise
         """
         if not isinstance(key_string, str):
             return False
