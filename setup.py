@@ -13,7 +13,7 @@ deps = {
 
 setup(
     name='factom-keys',
-    version='0.0.3',
+    version='0.0.4',
     description='A small library for using Factom\'s factoid and entry-credit keys',
     author="Sam Barnes",
     author_email="mistersamuelbarnes@gmail.com",
